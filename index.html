@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RML Calculator</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-size: 24px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            font-size: 18px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin: 4px;
+            font-size: 16px;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+
+        #ready-result,
+        #missing-parts-result,
+        #not-sas-unit-result {
+            margin-top: 20px;
+            font-size: 24px;
+        }
+
+        .highlight-green {
+            background-color: #c4f5c4;
+        }
+
+        .highlight-red {
+            background-color: #f5c4c4;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .remove-highlights {
+            padding: 12px 20px;
+            font-size: 18px;
+        }
+
+        .number-wrapper {
+            display: inline-block;
+            margin: 5px;
+            padding: 5px;
+            cursor: pointer;
+        }
+
+        .number {
+            display: inline-block;
+        }
+    </style>
+    <script>
+        var readyForInstall = [];
+        var missingParts = [];
+        var notSasUnit = [];
+        var readyIndex = 0;
+        var missingPartsIndex = 0;
+        var notSasUnitIndex = 0;
+
+        function compareLists() {
+            var units = document.getElementById("units").value;
+            var parts = document.getElementById("parts").value;
+
+            // Convert the input strings to arrays of numbers
+            var arrayUnits = units.split(/[,\s]+/).map(Number);
+            var arrayParts = parts.split(/[,\s]+/).map(Number);
+
+            // Find the common numbers
+            readyForInstall = arrayUnits.filter(function(number) {
+                return arrayParts.includes(number);
+            });
+
+            // Find the missing parts
+            missingParts = arrayUnits.filter(function(number) {
+                return !readyForInstall.includes(number);
+            });
+
+            // Find the not a SAS unit
+            notSasUnit = arrayParts.filter(function(number) {
+                return !readyForInstall.includes(number);
+            });
+
+            // Reset indices
+            readyIndex = 0;
+            missingPartsIndex = 0;
+            notSasUnitIndex = 0;
+
+            // Display the ready for install units
+            updateReadyResult();
+
+            // Display the missing parts units
+            updateMissingPartsResult();
+
+            // Display the not a SAS unit parts
+            updateNotSasUnitResult();
+        }
+
+        function updateReadyResult() {
+            var readyResult = document.getElementById("ready-result");
+            var displayedNumbers = readyForInstall.slice(readyIndex, readyIndex + 5);
+            readyResult.innerHTML = "Ready for Install: " + formatResult(displayedNumbers, "ready-number");
+            readyResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
+        }
+
+        function updateMissingPartsResult() {
+            var missingPartsResult = document.getElementById("missing-parts-result");
+            var displayedNumbers = missingParts.slice(missingPartsIndex, missingPartsIndex + 5);
+            missingPartsResult.innerHTML = "Missing Parts: " + formatResult(displayedNumbers, "missing-parts-number");
+            missingPartsResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
+        }
+
+        function updateNotSasUnitResult() {
+            var notSasUnitResult = document.getElementById("not-sas-unit-result");
+            var displayedNumbers = notSasUnit.slice(notSasUnitIndex, notSasUnitIndex + 5);
+            notSasUnitResult.innerHTML = "Not a SAS Unit: " + formatResult(displayedNumbers, "not-sas-unit-number");
+            notSasUnitResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
+        }
+
+        function formatResult(numbers, type) {
+            var formatted = "";
+            for (var i = 0; i < numbers.length; i++) {
+                formatted += "<div class='" + type + " number-wrapper'><span class='number'>" + numbers[i] + "</span></div>";
+            }
+            if (numbers.length > 5) {
+                formatted += "<div class='number-wrapper'><span class='number'>...</span></div>";
+            }
+            return formatted;
+        }
+
+        function removeHighlightedReady() {
+            var readyNumbers = document.querySelectorAll(".ready-number.highlight-green");
+            for (var i = 0; i < readyNumbers.length; i++) {
+                var numberElement = readyNumbers[i];
+                var number = parseInt(numberElement.textContent);
+                var index = readyForInstall.indexOf(number);
+                if (index > -1) {
+                    readyForInstall.splice(index, 1);
+                    numberElement.remove();
+                }
+            }
+            updateReadyResult();
+        }
+
+        function removeHighlightedMissingParts() {
+            var missingPartsNumbers = document.querySelectorAll(".missing-parts-number.highlight-red");
+            for (var i = 0; i < missingPartsNumbers.length; i++) {
+                var numberElement = missingPartsNumbers[i];
+                var number = parseInt(numberElement.textContent);
+                var index = missingParts.indexOf(number);
+                if (index > -1) {
+                    missingParts.splice(index, 1);
+                    numberElement.remove();
+                }
+            }
+            updateMissingPartsResult();
+        }
+
+        function removeHighlightedNotSasUnit() {
+            var notSasUnitNumbers = document.querySelectorAll(".not-sas-unit-number.highlight-red");
+            for (var i = 0; i < notSasUnitNumbers.length; i++) {
+                var numberElement = notSasUnitNumbers[i];
+                var number = parseInt(numberElement.textContent);
+                var index = notSasUnit.indexOf(number);
+                if (index > -1) {
+                    notSasUnit.splice(index, 1);
+                    numberElement.remove();
+                }
+            }
+            updateNotSasUnitResult();
+        }
+
+        function showNextReadyNumbers() {
+            readyIndex += 5;
+            updateReadyResult();
+        }
+
+        function showNextMissingPartsNumbers() {
+            missingPartsIndex += 5;
+            updateMissingPartsResult();
+        }
+
+        function showNextNotSasUnitNumbers() {
+            notSasUnitIndex += 5;
+            updateNotSasUnitResult();
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>REV Calculator</h1>
+        <div class="input-group">
+            <label for="units">REV Units:</label>
+            <input type="text" id="units" style="font-size: 24px;">
+        </div>
+        <div class="input-group">
+            <label for="parts">REV Parts:</label>
+            <input type="text" id="parts" style="font-size: 24px;">
+        </div>
+        <button onclick="compareLists()">Compare REV Units & Parts</button>
+        <div id="result">
+            <p id="ready-result" style="display: none;"></p>
+            <p id="missing-parts-result" style="display: none;"></p>
+            <p id="not-sas-unit-result" style="display: none;"></p>
+        </div>
+        <div class="button-group">
+            <button onclick="removeHighlightedReady()" class="remove-highlights">Remove Green Highlights (Ready for Install)</button>
+            <button onclick="removeHighlightedMissingParts()" class="remove-highlights">Remove Red Highlights (Missing Parts)</button>
+            <button onclick="removeHighlightedNotSasUnit()" class="remove-highlights">Remove Red Highlights (Not a REV Unit)</button>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("click", function(event) {
+            if (event.target.matches(".ready-number") || event.target.closest(".ready-number")) {
+                var numberElement = event.target.matches(".ready-number") ? event.target : event.target.closest(".ready-number");
+                numberElement.classList.toggle("highlight-green");
+            } else if (event.target.matches(".missing-parts-number") || event.target.closest(".missing-parts-number")) {
+                var numberElement = event.target.matches(".missing-parts-number") ? event.target : event.target.closest(".missing-parts-number");
+                numberElement.classList.toggle("highlight-red");
+            } else if (event.target.matches(".not-sas-unit-number") || event.target.closest(".not-sas-unit-number")) {
+                var numberElement = event.target.matches(".not-sas-unit-number") ? event.target : event.target.closest(".not-sas-unit-number");
+                numberElement.classList.toggle("highlight-red");
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
