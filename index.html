@@ -40,28 +40,16 @@
 
         #ready-result,
         #missing-parts-result,
-        #not-sas-unit-result {
+        #not-sas-unit-result,
+        #recently-removed-result {
             margin-top: 20px;
             font-size: 24px;
-        }
-
-        .highlight-green {
-            background-color: #c4f5c4;
-        }
-
-        .highlight-red {
-            background-color: #f5c4c4;
         }
 
         .button-group {
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-
-        .remove-highlights {
-            padding: 12px 20px;
-            font-size: 18px;
         }
 
         .number-wrapper {
@@ -79,9 +67,8 @@
         var readyForInstall = [];
         var missingParts = [];
         var notSasUnit = [];
-        var readyIndex = 0;
-        var missingPartsIndex = 0;
-        var notSasUnitIndex = 0;
+        var recentlyRemoved = [];
+        var originalPosition = {};
 
         function compareLists() {
             var units = document.getElementById("units").value;
@@ -106,150 +93,133 @@
                 return !readyForInstall.includes(number);
             });
 
-            // Reset indices
-            readyIndex = 0;
-            missingPartsIndex = 0;
-            notSasUnitIndex = 0;
+            // Store the original position of each number
+            originalPosition = {};
+            for (var i = 0; i < readyForInstall.length; i++) {
+                originalPosition[readyForInstall[i]] = "ready";
+            }
+            for (var i = 0; i < missingParts.length; i++) {
+                originalPosition[missingParts[i]] = "missing";
+            }
+            for (var i = 0; i < notSasUnit.length; i++) {
+                originalPosition[notSasUnit[i]] = "notSas";
+            }
 
-            // Display the ready for install units
-            updateReadyResult();
-
-            // Display the missing parts units
-            updateMissingPartsResult();
-
-            // Display the not a SAS unit parts
-            updateNotSasUnitResult();
+            // Display the results
+            updateResults();
         }
 
-        function updateReadyResult() {
+        function updateResults() {
             var readyResult = document.getElementById("ready-result");
-            var displayedNumbers = readyForInstall.slice(readyIndex, readyIndex + 5);
-            readyResult.innerHTML = "Ready for Install: " + formatResult(displayedNumbers, "ready-number");
-            readyResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
-        }
+            readyResult.innerHTML = "Ready for Install: " + formatResult(readyForInstall, "ready");
 
-        function updateMissingPartsResult() {
             var missingPartsResult = document.getElementById("missing-parts-result");
-            var displayedNumbers = missingParts.slice(missingPartsIndex, missingPartsIndex + 5);
-            missingPartsResult.innerHTML = "Missing Parts: " + formatResult(displayedNumbers, "missing-parts-number");
-            missingPartsResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
-        }
+            missingPartsResult.innerHTML = "Missing Parts: " + formatResult(missingParts, "missing");
 
-        function updateNotSasUnitResult() {
             var notSasUnitResult = document.getElementById("not-sas-unit-result");
-            var displayedNumbers = notSasUnit.slice(notSasUnitIndex, notSasUnitIndex + 5);
-            notSasUnitResult.innerHTML = "Not a SAS Unit: " + formatResult(displayedNumbers, "not-sas-unit-number");
-            notSasUnitResult.style.display = displayedNumbers.length > 0 ? "block" : "none";
+            notSasUnitResult.innerHTML = "Not a SAS Unit: " + formatResult(notSasUnit, "notSas");
+
+            var recentlyRemovedResult = document.getElementById("recently-removed-result");
+            recentlyRemovedResult.innerHTML = "Recently Removed: " + formatResult(recentlyRemoved, "recentlyRemoved");
         }
 
-        function formatResult(numbers, type) {
+        function formatResult(numbers, arrayType) {
             var formatted = "";
             for (var i = 0; i < numbers.length; i++) {
-                formatted += "<div class='" + type + " number-wrapper'><span class='number'>" + numbers[i] + "</span></div>";
-            }
-            if (numbers.length > 5) {
-                formatted += "<div class='number-wrapper'><span class='number'>...</span></div>";
+                var clickHandler = "";
+                if (arrayType === "recentlyRemoved") {
+                    clickHandler = "moveBackToOriginalArray(" + numbers[i] + ")";
+                } else {
+                    clickHandler = "moveToRecentlyRemoved(" + numbers[i] + ", \"" + arrayType + "\")";
+                }
+
+                formatted += "<div class='number-wrapper' onclick='" + clickHandler + "'>";
+                formatted += "<span class='number'>" + numbers[i] + "</span>";
+                formatted += "</div>";
             }
             return formatted;
         }
 
-        function removeHighlightedReady() {
-            var readyNumbers = document.querySelectorAll(".ready-number.highlight-green");
-            for (var i = 0; i < readyNumbers.length; i++) {
-                var numberElement = readyNumbers[i];
-                var number = parseInt(numberElement.textContent);
-                var index = readyForInstall.indexOf(number);
-                if (index > -1) {
-                    readyForInstall.splice(index, 1);
-                    numberElement.remove();
+        function moveToRecentlyRemoved(number, arrayType) {
+            var index;
+            switch (arrayType) {
+                case "ready":
+                    index = readyForInstall.indexOf(number);
+                    if (index !== -1) {
+                        readyForInstall.splice(index, 1);
+                        recentlyRemoved.push(number);
+                        updateResults();
+                    }
+                    break;
+                case "missing":
+                    index = missingParts.indexOf(number);
+                    if (index !== -1) {
+                        missingParts.splice(index, 1);
+                        recentlyRemoved.push(number);
+                        updateResults();
+                    }
+                    break;
+                case "notSas":
+                    index = notSasUnit.indexOf(number);
+                    if (index !== -1) {
+                        notSasUnit.splice(index, 1);
+                        recentlyRemoved.push(number);
+                        updateResults();
+                    }
+                    break;
+            }
+        }
+
+        function moveBackToOriginalArray(number) {
+            var index = recentlyRemoved.indexOf(number);
+            if (index !== -1) {
+                var originalArray;
+                var arrayType = originalPosition[number];
+
+                // Determine the original array to move the number back to
+                switch (arrayType) {
+                    case "ready":
+                        originalArray = readyForInstall;
+                        break;
+                    case "missing":
+                        originalArray = missingParts;
+                        break;
+                    case "notSas":
+                        originalArray = notSasUnit;
+                        break;
+                }
+
+                if (originalArray) {
+                    recentlyRemoved.splice(index, 1);
+                    originalArray.push(number);
+                    updateResults();
                 }
             }
-            updateReadyResult();
-        }
-
-        function removeHighlightedMissingParts() {
-            var missingPartsNumbers = document.querySelectorAll(".missing-parts-number.highlight-red");
-            for (var i = 0; i < missingPartsNumbers.length; i++) {
-                var numberElement = missingPartsNumbers[i];
-                var number = parseInt(numberElement.textContent);
-                var index = missingParts.indexOf(number);
-                if (index > -1) {
-                    missingParts.splice(index, 1);
-                    numberElement.remove();
-                }
-            }
-            updateMissingPartsResult();
-        }
-
-        function removeHighlightedNotSasUnit() {
-            var notSasUnitNumbers = document.querySelectorAll(".not-sas-unit-number.highlight-red");
-            for (var i = 0; i < notSasUnitNumbers.length; i++) {
-                var numberElement = notSasUnitNumbers[i];
-                var number = parseInt(numberElement.textContent);
-                var index = notSasUnit.indexOf(number);
-                if (index > -1) {
-                    notSasUnit.splice(index, 1);
-                    numberElement.remove();
-                }
-            }
-            updateNotSasUnitResult();
-        }
-
-        function showNextReadyNumbers() {
-            readyIndex += 5;
-            updateReadyResult();
-        }
-
-        function showNextMissingPartsNumbers() {
-            missingPartsIndex += 5;
-            updateMissingPartsResult();
-        }
-
-        function showNextNotSasUnitNumbers() {
-            notSasUnitIndex += 5;
-            updateNotSasUnitResult();
         }
     </script>
 </head>
 <body>
     <div class="container">
-        <h1>REV Calculator</h1>
+        <h1>Rev Calc</h1>
         <div class="input-group">
-            <label for="units">REV Units:</label>
-            <input type="text" id="units" style="font-size: 24px;">
+            <label for="units">Units:</label>
+            <input type="text" id="units">
         </div>
         <div class="input-group">
-            <label for="parts">REV Parts:</label>
-            <input type="text" id="parts" style="font-size: 24px;">
+            <label for="parts">Parts:</label>
+            <input type="text" id="parts">
         </div>
-        <button onclick="compareLists()">Compare REV Units & Parts</button>
+        <button onclick="compareLists()">Compare</button>
         <div id="result">
-            <p id="ready-result" style="display: none;"></p>
-            <p id="missing-parts-result" style="display: none;"></p>
-            <p id="not-sas-unit-result" style="display: none;"></p>
-        </div>
-        <div class="button-group">
-            <button onclick="removeHighlightedReady()" class="remove-highlights">Remove Green Highlights (Ready for Install)</button>
-            <button onclick="removeHighlightedMissingParts()" class="remove-highlights">Remove Red Highlights (Missing Parts)</button>
-            <button onclick="removeHighlightedNotSasUnit()" class="remove-highlights">Remove Red Highlights (Not a REV Unit)</button>
+            <div id="ready-result"></div>
+            <div id="missing-parts-result"></div>
+            <div id="not-sas-unit-result"></div>
+            <div id="recently-removed-result"></div>
         </div>
     </div>
-    <script>
-        document.addEventListener("click", function(event) {
-            if (event.target.matches(".ready-number") || event.target.closest(".ready-number")) {
-                var numberElement = event.target.matches(".ready-number") ? event.target : event.target.closest(".ready-number");
-                numberElement.classList.toggle("highlight-green");
-            } else if (event.target.matches(".missing-parts-number") || event.target.closest(".missing-parts-number")) {
-                var numberElement = event.target.matches(".missing-parts-number") ? event.target : event.target.closest(".missing-parts-number");
-                numberElement.classList.toggle("highlight-red");
-            } else if (event.target.matches(".not-sas-unit-number") || event.target.closest(".not-sas-unit-number")) {
-                var numberElement = event.target.matches(".not-sas-unit-number") ? event.target : event.target.closest(".not-sas-unit-number");
-                numberElement.classList.toggle("highlight-red");
-            }
-        });
-    </script>
 </body>
 </html>
+
 
 
 
